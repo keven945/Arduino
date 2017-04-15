@@ -15,8 +15,12 @@ String DateAndTime;
 String TempAndHumi;
 byte value;
 LiquidCrystal lcd(8, 9, 4, 5, 6, 7);
+int buttonPin = A0;    // select the input pin for the potentiometer
+int ledPin = 13;  
+int buttonValue = 0;   // variable to store the value coming from the sensor
 
 void setup () {
+  pinMode(ledPin, OUTPUT);
   while (!Serial); // for Leonardo/Micro/Zero
   Serial.begin(9600);
 
@@ -40,7 +44,7 @@ void setup () {
 }
 
 void loop () {
-      lcd.clear();
+      //lcd.clear();
       DateAndTime = String("");
       DateTime now = rtc.now();
       
@@ -58,7 +62,6 @@ void loop () {
       
       TempAndHumi = String("T:");
      
-      
       int chk = DHT.read11(DHT11_PIN);
  
       TempAndHumi += DHT.temperature;
@@ -94,14 +97,27 @@ void loop () {
       }*/
 
     
-        // set the cursor to column 0, line 1
+       // set the cursor to column 0, line 1
        // (note: line 1 is the second row, since counting begins with 0):
        lcd.setCursor(0, 1);
-        // print the number of seconds since reset:
-        lcd.print(TempAndHumi);
-      
+       // print the number of seconds since reset:
+       lcd.print(TempAndHumi);
+
+
+        // read the value from the sensor:
+      buttonValue = analogRead(buttonPin);
+      lcd.print(buttonValue);
+      digitalWrite(ledPin, HIGH);
+      // stop the program for <sensorValue> milliseconds:
+      delay(buttonValue);
+      // turn the ledPin off:
+      digitalWrite(ledPin, LOW);
+      // stop the program for for <sensorValue> milliseconds:
+      delay(buttonValue);
+
+      //analogWrite(ledPin, brightness);
     
-      delay(10000);
+      delay(5000);
 }
 
 String getDigits(byte digits){
