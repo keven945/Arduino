@@ -1,11 +1,14 @@
 // Date and time functions using a DS1307 RTC connected via I2C and Wire lib
-#include <Wire.h>
+//#include <Wire.h>
 #include <RTClib.h>
 #include <dht.h>
-#include <EEPROM.h>
+//#include <EEPROM.h>
 #include <LiquidCrystal.h>
+#include <OneWire.h>
+#include <DallasTemperature.h>
 
-#define DHT11_PIN 3
+#define DHT11_PIN 
+#define ONE_WIRE_BUS 3
 
 String DateAndTime;
 String TempAndHumi;
@@ -35,6 +38,8 @@ const int BUTTONELOW = 700;
 const int BUTTONEHIGH = 800;
 
 dht DHT;
+OneWire oneWire(ONE_WIRE_BUS); 
+DallasTemperature sensors(&oneWire);
 RTC_DS1307 rtc;
 LiquidCrystal lcd(8, 9, 4, 5, 6, 7);
 
@@ -53,6 +58,7 @@ void setup () {
   Serial.begin(9600);
 
   lcd.begin(16, 2);
+  sensors.begin(); 
 
   if (! rtc.begin()) {
     Serial.println("Couldn't find RTC");
@@ -80,17 +86,10 @@ void loop () {
   DateAndTime += (getDigits(now.hour()));
   DateAndTime += ':';
   DateAndTime += (getDigits(now.minute()));
-
+  
+  sensors.requestTemperatures();
   TempAndHumi = String("T:");
-  int chk = DHT.read11(DHT11_PIN);
-
-  TempAndHumi += DHT.temperature;
-  TempAndHumi += "  H:";
-  TempAndHumi += DHT.humidity;
-
-  //char cbuff[32];
-  //stringData.toCharArray(cbuff, 32);
-
+  TempAndHumi += sensors.getTempCByIndex(0);
 
   lcd.setCursor(0, 0);
   lcd.print(DateAndTime);
@@ -169,6 +168,7 @@ void loop () {
    // save the reading.  Next time through the loop,
    // it'll be the lastButtonState:
    lastButtonState = tmpButtonState;
+   delay(1000);
 }
 
 String getDigits(byte digits) {
@@ -180,8 +180,31 @@ String getDigits(byte digits) {
   return digitStr;
 }
 
+void goToSleep(byte sleepSeconds) {
+  /*
+  Wire.beginTransmission(RTCADDR);
+  Wire.write(RTCSEC);
+  Wire.write(0x80);//back to zero, but start counting
+  Wire.endTransmission();
+
+  Wire.beginTransmission(RTCADDR);//set the alarm time
+  Wire.write(ALM0SEC);
+  Wire.write(sleepSeconds);//seconds only
+  Wire.write(0x00);
+  Wire.write(0x00);
+  Wire.write(0x00);//clears flag
+  Wire.endTransmission();
+  */
+
+  //BOD DISABLE - this must be called right before the __asm__ sleep instruction
+  MCUCR |= (3 << 5); //set both BODS and BODSE at the same time
+  MCUCR = (MCUCR & ~(1 << 5)) | (1 << 6); //then set the BODS bit and clear the BODSE bit at the same time
+  __asm__  __volatile__("sleep");//in line assembler to go to sleep
+}
+/*
 void save_string_to_eeprom(char* stringIn) {
   for (int i = 0; i < strlen(stringIn); i++) {
     EEPROM.update(i, stringIn[i]);
   }
 }
+*/
